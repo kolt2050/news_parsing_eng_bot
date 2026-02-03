@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI News Parser</title>
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a35;
+            --bg-card: #252545;
+            --bg-sent: #1a2a1a;
+            --text-primary: #e0e0ff;
+            --text-secondary: #a0a0c0;
+            --accent-blue: #4f7cff;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --gradient-1: linear-gradient(135deg, #4f7cff, #8b5cf6);
+            --gradient-2: linear-gradient(135deg, #10b981, #4f7cff);
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--gradient-1);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 25px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--gradient-1);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--gradient-2);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--accent-orange), var(--accent-red));
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(79, 124, 255, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-bar {
+            background: var(--bg-secondary);
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.online {
+            background: var(--accent-green);
+        }
+
+        .status-dot.offline {
+            background: var(--accent-red);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .counters {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .counter-box {
+            background: var(--bg-card);
+            padding: 8px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .counter-box.pending {
+            border-left: 3px solid var(--accent-orange);
+        }
+
+        .counter-box.sent {
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .counter-box.total {
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .counter-number {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .counter-label {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        .message {
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid var(--accent-green);
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid var(--accent-red);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            margin: 30px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--bg-card);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title.pending {
+            color: var(--accent-orange);
+        }
+
+        .section-title.sent {
+            color: var(--accent-green);
+        }
+
+        .news-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .news-card {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 12px 15px;
+            box-shadow: var(--shadow);
+            border-left: 3px solid var(--accent-purple);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .news-card:hover {
+            background: var(--bg-secondary);
+        }
+
+        .news-card.sent {
+            border-left-color: var(--accent-green);
+            background: var(--bg-sent);
+        }
+
+        .news-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .news-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .news-source {
+            background: var(--gradient-1);
+            padding: 3px 8px;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .news-content {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--bg-secondary);
+        }
+
+        .news-card.expanded .news-content {
+            display: block;
+        }
+
+        .news-card.expanded {
+            padding: 15px;
+        }
+
+        .news-summary {
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+
+        .news-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .news-date {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .news-link {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .news-link:hover {
+            color: var(--accent-purple);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            color: var(--text-secondary);
+        }
+
+        .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading .loader {
+            display: inline-block;
+        }
+
+        .loading .btn-text {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .counters {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .status-item {
+            position: relative;
+        }
+
+        .sources-details {
+            font-size: 0.85rem;
+            border: 1px solid var(--bg-secondary);
+        }
+
+        .source-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            gap: 15px;
+        }
+
+        .source-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .source-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .source-status.online {
+            background: var(--accent-green);
+        }
+
+        .source-status.offline {
+            background: var(--accent-red);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 AI News Parser</h1>
+            <p>Парсинг новостей об ИИ с переводом на русский</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-dot" id="ltStatus"></span>
+                <span>LibreTranslate</span>
+            </div>
+            <div class="status-item">
+                <span>🔄 Автопарсинг: <strong id="autoSendStatus">{{ 'Вкл' if auto_send_running else 'Выкл'
+                        }}</strong></span>
+            </div>
+            <div class="status-item" id="timerContainer" style="display: {{ 'flex' if auto_send_running else 'none' }}">
+                <span>⏱️ Следующий: <strong id="timerDisplay">30</strong>с</span>
+            </div>
+            <div class="status-item" id="parseStatsContainer"
+                style="display: {{ 'flex' if auto_send_running else 'none' }}">
+                <div class="stats-summary" style="cursor: help;" title="Наведите для деталей">
+                    <span>🔎 Найдено: <strong id="statsFound">0</strong></span>
+                    <span style="margin: 0 5px; color: var(--text-secondary);">|</span>
+                    <span>Добавлено: <strong id="statsAdded">0</strong></span>
+                </div>
+                <div id="sourcesDetails" class="sources-details"
+                    style="display: none; position: absolute; top: 100%; right: 0; background: var(--bg-card); padding: 10px; border-radius: 8px; box-shadow: var(--shadow); z-index: 100; min-width: 200px;">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <div class="counters">
+            <div class="counter-box total">
+                <div class="counter-number" id="totalCount">{{ news|length }}</div>
+                <div class="counter-label">Всего</div>
+            </div>
+            <div class="counter-box pending">
+                <div class="counter-number" id="pendingCount">{{ pending_news|length }}</div>
+                <div class="counter-label">Ожидают</div>
+            </div>
+            <div class="counter-box sent">
+                <div class="counter-number" id="sentCount">{{ sent_news|length }}</div>
+                <div class="counter-label">Отправлено</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="parseBtn" onclick="parseNews()">
+                <span class="btn-text">🔍 Парсить новости</span>
+                <span class="loader"></span>
+            </button>
+            <button class="btn btn-success" id="sendBtn" onclick="sendToTelegram()">
+                <span class="btn-text">📤 Отправить в Telegram</span>
+                <span class="loader"></span>
+            </button>
+            <button class="btn btn-warning" id="autoSendBtn" onclick="toggleAutoSend()">
+                <span class="btn-text">⏱️ {{ 'Остановить' if auto_send_running else 'Запустить' }} автопарсинг</span>
+                <span class="loader"></span>
+            </button>
+            <button class="btn btn-danger" id="clearBtn" onclick="clearDatabase()">
+                <span class="btn-text">🗑️ Очистить БД</span>
+                <span class="loader"></span>
+            </button>
+        </div>
+
+        <div id="messageBox"></div>
+
+        <!-- Pending News Section -->
+        {% if pending_news %}
+        <h2 class="section-title pending">⏳ Ожидают отправки ({{ pending_news|length }})</h2>
+        <div class="news-list">
+            {% for item in pending_news %}
+            <div class="news-card" onclick="this.classList.toggle('expanded')">
+                <div class="news-header">
+                    <h3 class="news-title">{{ item.title }}</h3>
+                    <span class="news-source">{{ item.source_name }}</span>
+                </div>
+                <div class="news-content">
+                    <p class="news-summary">{{ item.summary_ru }}</p>
+                    <div class="news-footer">
+                        <span class="news-date">📅 {{ item.date[:16].replace('T', ' ') }}</span>
+                        <a class="news-link" href="{{ item.source_url }}" target="_blank"
+                            onclick="event.stopPropagation()">Читать оригинал →</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Sent News Section -->
+        {% if sent_news %}
+        <h2 class="section-title sent">✓ Отправлено в Telegram ({{ sent_news|length }})</h2>
+        <div class="news-list">
+            {% for item in sent_news %}
+            <div class="news-card sent" onclick="this.classList.toggle('expanded')">
+                <div class="news-header">
+                    <h3 class="news-title">{{ item.title }}</h3>
+                    <span class="news-source">{{ item.source_name }}</span>
+                </div>
+                <div class="news-content">
+                    <p class="news-summary">{{ item.summary_ru }}</p>
+                    <div class="news-footer">
+                        <span class="news-date">📅 {{ item.date[:16].replace('T', ' ') }}</span>
+                        <a class="news-link" href="{{ item.source_url }}" target="_blank"
+                            onclick="event.stopPropagation()">Читать оригинал →</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not pending_news and not sent_news %}
+        <div class="empty-state">
+            <h2>📭 Новостей пока нет</h2>
+            <p>Нажмите "Парсить новости" для получения последних новостей об ИИ</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        let autoSendRunning = {{ 'true' if auto_send_running else 'false' }};
+        let timerSeconds = 30;
+        let timerInterval = null;
+
+        // Track previous state to detect changes
+        let prevNewsCount = {{ news| length }};
+        let prevPendingCount = {{ pending_news| length }};
+        let prevSentCount = {{ sent_news| length }};
+
+        function startTimer() {
+            timerSeconds = 30;
+            updateTimerDisplay();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(async () => {
+                timerSeconds--;
+                updateTimerDisplay();
+                if (timerSeconds <= 0) {
+                    timerSeconds = 30;
+                    updateTimerDisplay();
+                    // Refresh counters and page content
+                    await updateStatus();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timerDisplay').textContent = timerSeconds;
+        }
+
+        // Start timer on page load if auto-parsing is running
+        if (autoSendRunning) {
+            startTimer();
+        }
+
+        function showMessage(text, type) {
+            const box = document.getElementById('messageBox');
+            box.innerHTML = `<div class="message ${type}">${text}</div>`;
+            setTimeout(() => box.innerHTML = '', 5000);
+        }
+
+        function setLoading(btnId, loading) {
+            const btn = document.getElementById(btnId);
+            if (loading) {
+                btn.classList.add('loading');
+                btn.disabled = true;
+            } else {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        async function parseNews() {
+            setLoading('parseBtn', true);
+            showMessage('⏳ Парсинг новостей... Это может занять 1-2 минуты', 'success');
+            try {
+                const response = await fetch('/api/parse', { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(`✅ ${data.message}`, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage(`❌ ${data.error}`, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ Ошибка соединения', 'error');
+            }
+            setLoading('parseBtn', false);
+        }
+
+        async function sendToTelegram() {
+            setLoading('sendBtn', true);
+            try {
+                const response = await fetch('/api/send-telegram', { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(`✅ ${data.message}`, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage(`❌ ${data.error}`, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ Ошибка соединения', 'error');
+            }
+            setLoading('sendBtn', false);
+        }
+
+        async function toggleAutoSend() {
+            setLoading('autoSendBtn', true);
+            const endpoint = autoSendRunning ? '/api/auto-send/stop' : '/api/auto-send/start';
+
+            try {
+                const response = await fetch(endpoint, { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(`✅ ${data.message}`, 'success');
+                    autoSendRunning = !autoSendRunning;
+                    document.getElementById('autoSendStatus').textContent = autoSendRunning ? 'Вкл' : 'Выкл';
+                    document.querySelector('#autoSendBtn .btn-text').textContent =
+                        autoSendRunning ? '⏱️ Остановить автопарсинг' : '⏱️ Запустить автопарсинг';
+
+                    // Control timer and stats display
+                    document.getElementById('timerContainer').style.display = autoSendRunning ? 'flex' : 'none';
+                    document.getElementById('parseStatsContainer').style.display = autoSendRunning ? 'flex' : 'none';
+                    if (autoSendRunning) {
+                        startTimer();
+                    } else {
+                        stopTimer();
+                    }
+                } else {
+                    showMessage(`❌ ${data.error}`, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ Ошибка соединения', 'error');
+            }
+            setLoading('autoSendBtn', false);
+        }
+
+        async function clearDatabase() {
+            if (!confirm('Вы уверены, что хотите очистить всю базу данных?')) {
+                return;
+            }
+
+            setLoading('clearBtn', true);
+            try {
+                const response = await fetch('/api/clear', { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(`✅ ${data.message}`, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage(`❌ ${data.error}`, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ Ошибка соединения', 'error');
+            }
+            setLoading('clearBtn', false);
+        }
+
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                const ltDot = document.getElementById('ltStatus');
+                ltDot.className = `status-dot ${data.libretranslate}`;
+
+                // Check for changes and reload if needed
+                const newsCount = parseInt(data.news_count);
+                const pendingCount = parseInt(data.pending_count);
+                const sentCount = parseInt(data.sent_count);
+
+                // If any count changed unrelated to our own actions (which reload anyway), revisit page
+                // We mainly care if news were added (newsCount increased) or status changed
+                if (newsCount !== prevNewsCount) {
+                    console.log('News count changed, reloading...');
+                    location.reload();
+                    return;
+                }
+
+                // If we have just simple visual updates for pending/sent without adding new ones 
+                // (e.g. background process moved them), we should arguably reload too.
+                if (pendingCount !== prevPendingCount || sentCount !== prevSentCount) {
+                    console.log('Status counts changed, reloading...');
+                    location.reload();
+                    return;
+                }
+
+                document.getElementById('totalCount').textContent = data.news_count;
+                document.getElementById('pendingCount').textContent = data.pending_count;
+                document.getElementById('sentCount').textContent = data.sent_count;
+
+                if (data.parse_stats) {
+                    document.getElementById('statsFound').textContent = data.parse_stats.found;
+                    document.getElementById('statsAdded').textContent = data.parse_stats.added;
+
+                    // Render sources details
+                    if (data.parse_stats.sources) {
+                        const container = document.getElementById('sourcesDetails');
+                        let html = '<div style="margin-bottom: 8px; font-weight: 600; border-bottom: 1px solid var(--bg-secondary); padding-bottom: 4px;">Источники:</div>';
+
+                        for (const [source, stats] of Object.entries(data.parse_stats.sources)) {
+                            const statusColor = stats.status === 'online' ? 'var(--accent-green)' : 'var(--accent-red)';
+                            const statusIcon = stats.status === 'online' ? '🟢' : '🔴';
+
+                            html += `
+                                <div class="source-row">
+                                    <span class="source-name">
+                                        ${statusIcon} ${source}
+                                    </span>
+                                    <span>${stats.count} шт.</span>
+                                </div>
+                            `;
+                        }
+                        // Add duplicates info
+                        html += `
+                            <div class="source-row" style="margin-top: 8px; border-top: 1px solid var(--bg-secondary); padding-top: 8px;">
+                                <span class="source-name">🔁 Дубликаты</span>
+                                <span>${data.parse_stats.duplicates} шт.</span>
+                            </div>
+                        `;
+
+                        container.innerHTML = html;
+                    }
+                }
+            } catch (e) {
+                console.error('Status update failed', e);
+            }
+        }
+
+        const statsContainer = document.getElementById('parseStatsContainer');
+        const details = document.getElementById('sourcesDetails');
+
+        if (statsContainer && details) {
+            statsContainer.addEventListener('mouseenter', () => {
+                details.style.display = 'block';
+            });
+            statsContainer.addEventListener('mouseleave', () => {
+                details.style.display = 'none';
+            });
+        }
+
+        setInterval(updateStatus, 5000); // Check every 5 seconds instead of 10 for faster updates
+        updateStatus();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,22 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - LIBRETRANSLATE_URL=http://libretranslate:5000
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    depends_on:
+      - libretranslate
+    restart: unless-stopped
+
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    ports:
+      - "5000:5000"
+    environment:
+      - LT_LOAD_ONLY=en,ru
+    restart: unless-stopped
